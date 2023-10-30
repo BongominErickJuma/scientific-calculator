@@ -1,14 +1,16 @@
 const form = document.getElementById("form");
 const operandKeys = document.querySelectorAll("button[data-type=operand]");
 const operatorKeys = document.querySelectorAll("button[data-type=operator]");
-const output = document.getElementById("output");
+const output = document.getElementById("display");
 
 form.addEventListener("submit", (e) => {
   e.preventDefault();
 });
 
-let is_operator = false;
+let is_operator = false; //track if the button pressed is an operator
 let eqn = [];
+let lastOperator = null; //track last operator entered
+let decimalUsed = false; // track decimal usage
 
 const limitDigits = () => {
   if (output.value.length > 10) {
@@ -51,25 +53,38 @@ const getSquare = () => {
 
 operandKeys.forEach((btn) => {
   btn.addEventListener("click", (e) => {
-      removeActive();
+    removeActive();
     let key = e.target;
-    if (output.value === "0") {
-      output.value = key.value;
-    } else if (is_operator) {
+
+    if (key.value === "." && decimalUsed) {
+      // Prevent multiple decimal points in the same operand
+      return;
+    }
+
+    if (output.value === "0" || is_operator) {
+      // Reset the decimalUsed flag for a new operand
+      decimalUsed = false;
       is_operator = false;
       output.value = key.value;
     } else {
       output.value = output.value + key.value;
     }
+
+    if (key.value === ".") {
+      // Mark that a decimal point has been used in the current operand
+      decimalUsed = true;
+    }
+
     limitDigits();
   });
 });
 
 operatorKeys.forEach((btn) => {
   btn.addEventListener("click", (e) => {
-    removeActive()
+    removeActive();
     e.currentTarget.classList.add("active");
     let key = e.target;
+    decimalUsed = false;
     switch (key.value) {
       case "invert":
         output.value = parseFloat(output.value * -1);
@@ -95,7 +110,16 @@ operatorKeys.forEach((btn) => {
         break;
       default:
         let lastItem = eqn[eqn.length - 1];
-        if (["/", "*", "+", "-", "**"].includes(lastItem) && is_operator) {
+        if (
+          ((key.value === "*" && lastItem === "*") ||
+            (key.value === "-" && lastItem === "*")) &&
+          is_operator
+        ) {
+          eqn.push(key.value);
+        } else if (
+          ["/", "*", "+", "-"].includes(lastItem) &&
+          is_operator
+        ) {
           eqn.pop();
           eqn.push(key.value);
         } else {
@@ -106,8 +130,8 @@ operatorKeys.forEach((btn) => {
         break;
     }
     limitDigits();
-    setTimeout(()=> {
+    setTimeout(() => {
       removeActive();
-    }, 2000)
+    }, 2000);
   });
 });
